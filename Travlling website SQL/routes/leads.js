@@ -12,3 +12,4 @@ router.put("/:id", adminCheck, ctrl.updateLead);
 router.delete("/:id", adminCheck, ctrl.deleteLead);
 
 module.exports = router;
+

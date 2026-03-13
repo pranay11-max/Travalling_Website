@@ -4,7 +4,14 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState("packages");
   const [packages, setPackages] = useState<any[]>([]);
+  const [leads, setLeads] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [feedbacks, setFeedbacks] = useState<any[]>([]); // 🚀 New State for Feedback
+  
+  const [currentAdmin, setCurrentAdmin] = useState<any>(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -17,162 +24,347 @@ export default function AdminDashboard() {
     email: "", newPassword: "", confirmPassword: ""
   });
 
-  const fetchPackages = async () => {
+  const fetchAllData = async () => {
     try {
-      const res = await fetch("https://travel-backend-api-vx7a.onrender.com/api/packages");
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setPackages(data);
+      const pkgRes = await fetch("https://travel-backend-api-vx7a.onrender.com/api/packages", { cache: "no-store" });
+      const pkgData = await pkgRes.json();
+      if (Array.isArray(pkgData)) setPackages(pkgData);
+
+      const leadsRes = await fetch("https://travel-backend-api-vx7a.onrender.com/api/leads", {
+        headers: { "role": "admin" }, cache: "no-store"
+      }).catch(()=>null);
+      if(leadsRes && leadsRes.ok){
+        const leadsData = await leadsRes.json();
+        if (Array.isArray(leadsData)) setLeads(leadsData);
+      }
+
+      const usersRes = await fetch("https://travel-backend-api-vx7a.onrender.com/api/users", {
+        headers: { "role": "admin" }, cache: "no-store"
+      }).catch(()=>null);
+      if(usersRes && usersRes.ok){
+         const usersData = await usersRes.json();
+         if (Array.isArray(usersData)) setUsers(usersData);
+      }
+
+      // 🚀 NEW: Fetch Feedbacks
+      const fbRes = await fetch("https://travel-backend-api-vx7a.onrender.com/api/feedback", {
+        headers: { "role": "admin" }, cache: "no-store"
+      }).catch(()=>null);
+      if(fbRes && fbRes.ok){
+         const fbData = await fbRes.json();
+         if (Array.isArray(fbData)) setFeedbacks(fbData);
       }
     } catch (err) {
-      console.error("Failed to fetch packages", err);
+      console.error("Failed to fetch data", err);
     }
   };
 
-  useEffect(() => { fetchPackages(); }, []);
+  useEffect(() => { 
+    fetchAllData(); 
+    const userStr = localStorage.getItem("user");
+    if(userStr) setCurrentAdmin(JSON.parse(userStr));
+  }, []);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure? This trip will be gone forever!")) return;
     try {
       const res = await fetch(`https://travel-backend-api-vx7a.onrender.com/api/packages/${id}`, {
-        method: "DELETE",
-        headers: { "role": "admin" }
+        method: "DELETE", headers: { "role": "admin" }
       });
-      if (res.ok) {
-        alert("Trip Deleted Successfully! 🗑️");
-        fetchPackages();
-      }
-    } catch (err) {
-      alert("Server Error!");
-    }
+      if (res.ok) { alert("Trip Deleted Successfully! 🗑️"); fetchAllData(); } 
+      else { alert("Delete Failed! Check Backend."); }
+    } catch (err) { alert("Server Error!"); }
+  };
+
+  const handleDeleteLead = async (id: any) => {
+    if (!id) return alert("Error: ID not found!");
+    if (!confirm("Are you sure you want to delete this record?")) return;
+    try {
+      const res = await fetch(`https://travel-backend-api-vx7a.onrender.com/api/leads/${id}`, { 
+        method: "DELETE", headers: { "role": "admin" } 
+      });
+      if (res.ok) { alert("Record Deleted! 🗑️"); fetchAllData(); } 
+      else { alert("Delete Failed!"); }
+    } catch (err) { alert("Server Error!"); }
+  };
+
+  const handleDeleteUser = async (id: any) => {
+    if (!id) return alert("Error: ID not found!");
+    if (!confirm("Are you sure you want to remove this user?")) return;
+    try {
+      const res = await fetch(`https://travel-backend-api-vx7a.onrender.com/api/users/${id}`, { 
+        method: "DELETE", headers: { "Content-Type": "application/json", "role": "admin" } 
+      });
+      if (res.ok) { alert("User Deleted! 🗑️"); fetchAllData(); }
+      else { alert("Delete failed!"); }
+    } catch (err: any) { alert("Server Error!"); }
+  };
+
+  const handleApproveAdmin = async (id: any) => {
+    if (!confirm("Approve this user as Sub-Admin?")) return;
+    try {
+      const res = await fetch(`https://travel-backend-api-vx7a.onrender.com/api/users/${id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json", "role": "admin" },
+        body: JSON.stringify({ role: "admin" }) 
+      });
+      if (res.ok) { alert("Sub-Admin Approved! ✅"); fetchAllData(); } 
+      else { alert("Approval Failed!"); }
+    } catch (err) { alert("Server Error!"); }
+  };
+
+  // 🚀 NEW: Accept Feedback Logic
+  const handleAcceptFeedback = async (id: any) => {
+    try {
+      const res = await fetch(`https://travel-backend-api-vx7a.onrender.com/api/feedback/${id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json", "role": "admin" },
+        body: JSON.stringify({ status: "accepted" }) 
+      });
+      if (res.ok) { alert("Feedback Marked as Accepted! ✅"); fetchAllData(); } 
+      else { alert("Failed to Accept!"); }
+    } catch (err) { alert("Server Error!"); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const method = editingItem ? "PUT" : "POST";
-      
-      const url = editingItem 
-        ? `https://travel-backend-api-vx7a.onrender.com/api/packages/${editingItem.id}` 
-        : "https://travel-backend-api-vx7a.onrender.com/api/packages";
-
+      const url = editingItem ? `https://travel-backend-api-vx7a.onrender.com/api/packages/${editingItem.id}` : "https://travel-backend-api-vx7a.onrender.com/api/packages";
       const res = await fetch(url, {
-        method: method,
-        headers: { 
-          "Content-Type": "application/json",
-          "role": "admin" 
-        },
-        body: JSON.stringify(formData)
+        method: method, headers: { "Content-Type": "application/json", "role": "admin" }, body: JSON.stringify(formData)
       });
-
       if (res.ok) {
         alert(editingItem ? "Trip Updated! ✏️" : "New Trip Added! 🚀");
-        setIsModalOpen(false);
-        setEditingItem(null);
+        setIsModalOpen(false); setEditingItem(null);
         setFormData({ title: "", location: "", price: "", days: "", vibe: "", image_url: "", description: "", itinerary: "" });
-        fetchPackages();
+        fetchAllData();
       }
-    } catch (err) {
-      alert("Server Error!");
-    }
+    } catch (err) { alert("Server Error!"); }
   };
 
   const handleAdminUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if(adminData.newPassword !== adminData.confirmPassword) {
-        alert("Passwords do not match!");
-        return;
-    }
-    // इथे बॅकएंड API ला कॉल जाईल (भविष्यात)
-    alert("Admin Credentials Updated! (Backend API needed)");
-    setIsSettingsOpen(false);
+    if(adminData.newPassword !== adminData.confirmPassword) { alert("Passwords do not match! ❌"); return; }
+    try {
+      const res = await fetch("https://travel-backend-api-vx7a.onrender.com/api/users/register", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          name: adminData.email.split('@')[0], email: adminData.email, password: adminData.newPassword, role: "pending_admin" 
+        })
+      });
+      if (res.ok) {
+        alert("Request Sent! 🚀 Main Admin will approve it.");
+        setIsSettingsOpen(false);
+        setAdminData({ email: "", newPassword: "", confirmPassword: "" }); fetchAllData();
+      }
+    } catch (err) { alert("Network Error!"); }
   };
 
-  // लोकल सिक्वेन्स बदलण्यासाठी
-  const movePackage = (index: number, direction: 'up' | 'down') => {
-    const newPackages = [...packages];
-    if (direction === 'up' && index > 0) {
-      [newPackages[index - 1], newPackages[index]] = [newPackages[index], newPackages[index - 1]];
-    } else if (direction === 'down' && index < newPackages.length - 1) {
-      [newPackages[index + 1], newPackages[index]] = [newPackages[index], newPackages[index + 1]];
-    }
-    setPackages(newPackages);
-    // टीप: खरा क्रम बदलण्यासाठी इथे Backend API ला कॉल करावा लागेल
+  const changePackagePosition = async (oldIndex: number, newPosStr: string) => {
+    const newPos = parseInt(newPosStr);
+    if (isNaN(newPos) || newPos < 1 || newPos > packages.length || newPos - 1 === oldIndex) return;
+    const newIndex = newPos - 1; const newPackages = [...packages];
+    const [movedItem] = newPackages.splice(oldIndex, 1);
+    newPackages.splice(newIndex, 0, movedItem); setPackages(newPackages);
+    try {
+      await fetch("https://travel-backend-api-vx7a.onrender.com/api/packages/sequence/update", {
+        method: "PUT", headers: { "Content-Type": "application/json", "role": "admin" }, body: JSON.stringify({ packages: newPackages })
+      });
+    } catch (err) { console.error("Failed to update sequence", err); }
   };
+
+  const bookings = leads.filter(lead => lead.type === "booking");
+  const inquiries = leads.filter(lead => lead.type === "contact");
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans relative">
-      <div className="absolute top-0 left-0 w-full h-[110px] bg-slate-900 rounded-b-[2.5rem] shadow-md z-0"></div>
+    <div className="min-h-screen bg-slate-100 font-sans relative overflow-x-hidden">
+      <div className="absolute top-0 left-0 w-full h-[120px] bg-slate-900 rounded-b-[2.5rem] shadow-xl z-0"></div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-[140px] pb-20 relative z-10">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-[130px] md:pt-[150px] pb-20 relative z-10">
+        
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4 w-full">
           <h1 className="text-3xl md:text-4xl font-black italic uppercase text-slate-900 drop-shadow-sm">
             Admin <span className="text-blue-600">Control</span>
           </h1>
-          
-          <div className="flex gap-3">
-             <button 
-              onClick={() => setIsSettingsOpen(true)}
-              className="bg-slate-200 text-slate-800 px-5 py-3.5 rounded-full font-black tracking-widest hover:bg-slate-300 transition-all text-[10px] md:text-xs uppercase"
-            >
-              ⚙️ SETTINGS
+          <div className="flex flex-wrap gap-2 md:gap-3 w-full sm:w-auto">
+             <button onClick={() => setIsSettingsOpen(true)} className="flex-1 sm:flex-none justify-center bg-slate-200 text-slate-800 px-4 md:px-5 py-3 md:py-3.5 rounded-full font-black tracking-widest hover:bg-slate-300 transition-all text-[10px] md:text-xs uppercase">
+              ➕ SUB-ADMIN
             </button>
-            <button 
-              onClick={() => { 
-                setEditingItem(null); 
-                setFormData({ title: "", location: "", price: "", days: "", vibe: "", image_url: "", description: "", itinerary: "" });
-                setIsModalOpen(true); 
-              }}
-              className="bg-slate-900 text-white px-7 py-3.5 rounded-full font-black tracking-widest hover:bg-blue-600 transition-all shadow-xl text-[10px] md:text-xs uppercase"
-            >
-              + ADD NEW ADVENTURE
+            <button onClick={() => { setEditingItem(null); setFormData({ title: "", location: "", price: "", days: "", vibe: "", image_url: "", description: "", itinerary: "" }); setIsModalOpen(true); }} className="flex-1 sm:flex-none justify-center bg-slate-900 text-white px-5 md:px-7 py-3 md:py-3.5 rounded-full font-black tracking-widest hover:bg-blue-600 transition-all shadow-xl text-[10px] md:text-xs uppercase">
+              + ADD ADVENTURE
             </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-slate-200">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-900 text-white uppercase text-[10px] tracking-[0.2em]">
-              <tr>
-                <th className="px-6 py-5">Order</th>
-                <th className="px-6 py-5">Trip</th>
-                <th className="px-6 py-5">Vibe</th>
-                <th className="px-6 py-5">Price</th>
-                <th className="px-6 py-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {packages.map((pkg: any, index: number) => (
-                <tr key={pkg.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-5 flex gap-2">
-                     <button onClick={() => movePackage(index, 'up')} className="p-1 bg-slate-100 hover:bg-slate-200 rounded">↑</button>
-                     <button onClick={() => movePackage(index, 'down')} className="p-1 bg-slate-100 hover:bg-slate-200 rounded">↓</button>
-                  </td>
-                  <td className="px-6 py-5 font-bold text-slate-800">{pkg.title}</td>
-                  <td className="px-6 py-5 uppercase text-[10px] font-black text-slate-400 tracking-widest">{pkg.vibe || "General"}</td>
-                  <td className="px-6 py-5 font-black text-blue-600 italic">₹{pkg.price}</td>
-                  <td className="px-6 py-5 text-right space-x-3">
-                    <button 
-                      onClick={() => { 
-                        setEditingItem(pkg); 
-                        setFormData({
-                          title: pkg.title || "", location: pkg.location || "", price: pkg.price || "",
-                          days: pkg.days || "", vibe: pkg.vibe || "", image_url: pkg.image_url || "",
-                          description: pkg.description || "", itinerary: pkg.itinerary || ""
-                        });
-                        setIsModalOpen(true); 
-                      }}
-                      className="text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:bg-emerald-50 px-3 py-2 rounded-full transition-all"
-                    >
-                      Edit
-                    </button>
-                    <button onClick={() => handleDelete(pkg.id)} className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 px-3 py-2 rounded-full transition-all">
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+        {/* 🚀 NEW TAB ADDED FOR FEEDBACKS */}
+        <div className="flex overflow-x-auto whitespace-nowrap no-scrollbar gap-2 mb-8 bg-white/80 backdrop-blur-md p-2 rounded-full shadow-sm border border-slate-200 w-full md:w-fit">
+          {[
+            { id: 'packages', label: '🌍 Packages' },
+            { id: 'bookings', label: '🚀 Bookings' },
+            { id: 'inquiries', label: '💬 Inquiries' },
+            { id: 'users', label: '👥 All Users' },
+            { id: 'feedbacks', label: '⭐ Feedbacks' } 
+          ].map((tab) => (
+            <button 
+              key={tab.id} 
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-5 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.15em] transition-all flex-shrink-0 ${activeTab === tab.id ? 'bg-blue-600 text-white shadow-md' : 'bg-transparent text-slate-900 hover:bg-slate-100'}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-2xl overflow-x-auto border border-slate-200 w-full relative">
+          <table className="w-full text-left border-collapse min-w-[750px] md:min-w-[800px]">
+            
+            {activeTab === 'packages' && (
+              // ... Packages Table (Unchanged)
+              <>
+                <thead className="bg-slate-900 text-white uppercase text-[10px] tracking-[0.2em]">
+                  <tr><th className="px-4 md:px-6 py-4 md:py-5 w-20">Order</th><th className="px-4 md:px-6 py-4 md:py-5">Trip</th><th className="px-4 md:px-6 py-4 md:py-5">Vibe</th><th className="px-4 md:px-6 py-4 md:py-5">Price</th><th className="px-4 md:px-6 py-4 md:py-5 text-right">Actions</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {packages.map((pkg: any, index: number) => (
+                    <tr key={pkg._id || pkg.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 md:px-6 py-4"><input type="number" min="1" max={packages.length} defaultValue={index + 1} onBlur={(e) => changePackagePosition(index, e.target.value)} className="w-12 md:w-14 p-2 text-center border border-slate-300 rounded-lg text-xs font-black text-slate-900 focus:ring-2 ring-blue-500 outline-none bg-white shadow-sm"/></td>
+                      <td className="px-4 md:px-6 py-4 font-black text-slate-900 text-sm md:text-base whitespace-nowrap uppercase italic">{pkg.title}</td>
+                      <td className="px-4 md:px-6 py-4 uppercase text-[9px] md:text-[10px] font-black text-blue-500 tracking-widest">{pkg.vibe || "General"}</td>
+                      <td className="px-4 md:px-6 py-4 font-black text-slate-950 italic text-sm md:text-base">₹{pkg.price}</td>
+                      <td className="px-4 md:px-6 py-4 text-right space-x-2 whitespace-nowrap">
+                        <button onClick={() => { setEditingItem(pkg); setFormData(pkg); setIsModalOpen(true); }} className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:bg-emerald-50 px-3 py-2 rounded-full transition-all">Edit</button>
+                        <button onClick={() => handleDelete(pkg._id || pkg.id)} className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 px-3 py-2 rounded-full transition-all">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </>
+            )}
+
+            {activeTab === 'bookings' && (
+              <>
+                <thead className="bg-slate-900 text-white uppercase text-[10px] tracking-[0.2em]">
+                  <tr><th className="px-4 md:px-6 py-4 md:py-5">Date</th><th className="px-4 md:px-6 py-4 md:py-5">Customer</th><th className="px-4 md:px-6 py-4 md:py-5">Contact</th><th className="px-4 md:px-6 py-4 md:py-5">Trip</th><th className="px-4 md:px-6 py-4 md:py-5 text-right">Actions</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {bookings.length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-slate-900 font-black uppercase italic">No bookings yet.</td></tr> : bookings.map((b: any) => (
+                    <tr key={b._id || b.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 md:px-6 py-4 text-[10px] md:text-xs text-slate-900 font-black">{new Date(b.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 md:px-6 py-4 font-black text-slate-950 text-sm uppercase italic">{b.name}</td>
+                      <td className="px-4 md:px-6 py-4 text-xs text-slate-900"><p className="font-black">{b.phone}</p><p className="text-[9px] font-bold text-slate-500">{b.email}</p></td>
+                      <td className="px-4 md:px-6 py-4 font-black text-blue-600 italic uppercase text-xs">{b.packageName}</td>
+                      <td className="px-4 md:px-6 py-4 text-right"><button onClick={() => handleDeleteLead(b._id || b.id)} className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 px-3 py-2 rounded-full transition-all">Delete</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </>
+            )}
+
+            {activeTab === 'inquiries' && (
+              <>
+                <thead className="bg-slate-900 text-white uppercase text-[10px] tracking-[0.2em]">
+                  <tr><th className="px-4 md:px-6 py-4 md:py-5">Date</th><th className="px-4 md:px-6 py-4 md:py-5">Name</th><th className="px-4 md:px-6 py-4 md:py-5">Message</th><th className="px-4 md:px-6 py-4 md:py-5 text-right">Actions</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {inquiries.length === 0 ? <tr><td colSpan={4} className="p-8 text-center text-slate-900 font-black uppercase italic">No inquiries yet.</td></tr> : inquiries.map((iq: any) => (
+                    <tr key={iq._id || iq.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 md:px-6 py-4 text-[10px] md:text-xs text-slate-950 font-black">{new Date(iq.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 md:px-6 py-4 font-black text-slate-950 text-sm uppercase italic">{iq.name}</td>
+                      <td className="px-4 md:px-6 py-4 text-xs text-slate-800 font-medium min-w-[200px]">{iq.message}</td>
+                      <td className="px-4 md:px-6 py-4 text-right"><button onClick={() => handleDeleteLead(iq._id || iq.id)} className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 px-3 py-2 rounded-full transition-all">Delete</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </>
+            )}
+
+            {activeTab === 'users' && (
+              <>
+                <thead className="bg-slate-900 text-white uppercase text-[10px] tracking-[0.2em]">
+                  <tr><th className="px-4 md:px-6 py-4 md:py-5">User</th><th className="px-4 md:px-6 py-4 md:py-5">Email</th><th className="px-4 md:px-6 py-4 md:py-5">Password</th><th className="px-4 md:px-6 py-4 md:py-5">Rank</th><th className="px-4 md:px-6 py-4 md:py-5 text-right">Actions</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {users.length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-slate-900 font-black uppercase italic">No users found.</td></tr> : users.map((u: any) => {
+                    
+                    const isMaster = u.email === "up@1123.com";
+                    const isSubAdmin = u.role === 'admin' && !isMaster;
+                    const isPendingAdmin = u.role === 'pending_admin' || u.role === 'pending';
+                    const isNormalUser = u.role !== 'admin' && !isPendingAdmin;
+
+                    const iAmMain = currentAdmin?.email === "up@1123.com";
+                    const iAmSub = currentAdmin?.role === 'admin' && currentAdmin?.email !== "up@1123.com";
+
+                    let canDelete = false;
+                    if(iAmMain) {
+                        canDelete = !isMaster; 
+                    } else if(iAmSub) {
+                        canDelete = isNormalUser; 
+                    }
+
+                    const displayPassword = (isMaster && !iAmMain) ? "******" : (u.password || "******");
+                    const isActive = currentAdmin?.email === u.email;
+
+                    return (
+                      <tr key={u._id || u.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 md:px-6 py-4 font-black text-slate-950 text-sm uppercase italic flex items-center gap-2">
+                          {u.name || 'Unknown'}
+                          {isActive && (
+                            <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_5px_#22c55e]" title="Active (You)"></span>
+                          )}
+                        </td>
+                        <td className="px-4 md:px-6 py-4 text-xs font-black text-slate-900">{u.email}</td>
+                        <td className="px-4 md:px-6 py-4 text-xs font-mono font-black text-blue-600 select-all bg-slate-50 rounded-lg">{displayPassword}</td>
+                        <td className="px-4 md:px-6 py-4">
+                           <span className={`px-2 py-1 md:px-3 md:py-1 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-widest ${isMaster ? 'bg-purple-100 text-purple-800' : isSubAdmin ? 'bg-yellow-100 text-yellow-800' : isPendingAdmin ? 'bg-orange-100 text-orange-800' : 'bg-blue-100 text-blue-800'}`}>
+                             {isMaster ? 'MAIN ADMIN' : isSubAdmin ? 'SUB ADMIN' : isPendingAdmin ? 'REQUESTED' : 'USER'}
+                           </span>
+                        </td>
+                        <td className="px-4 md:px-6 py-4 text-right space-x-2">
+                          {iAmMain && isPendingAdmin && (
+                            <button onClick={() => handleApproveAdmin(u._id || u.id)} className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:bg-emerald-50 px-3 py-2 rounded-full transition-all border border-emerald-200">Accept</button>
+                          )}
+                          {canDelete && (
+                            <button onClick={() => handleDeleteUser(u._id || u.id)} className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 px-3 py-2 rounded-full transition-all">Delete</button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </>
+            )}
+
+            {/* 🚀 NEW: FEEDBACKS TABLE */}
+            {activeTab === 'feedbacks' && (
+              <>
+                <thead className="bg-slate-900 text-white uppercase text-[10px] tracking-[0.2em]">
+                  <tr><th className="px-4 md:px-6 py-4 md:py-5">Date</th><th className="px-4 md:px-6 py-4 md:py-5">User Info</th><th className="px-4 md:px-6 py-4 md:py-5">Message</th><th className="px-4 md:px-6 py-4 md:py-5">Status</th><th className="px-4 md:px-6 py-4 md:py-5 text-right">Actions</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {feedbacks.length === 0 ? <tr><td colSpan={5} className="p-8 text-center text-slate-900 font-black uppercase italic">No feedbacks yet.</td></tr> : feedbacks.map((fb: any) => (
+                    <tr key={fb._id || fb.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 md:px-6 py-4 text-[10px] md:text-xs text-slate-900 font-black">{new Date(fb.createdAt).toLocaleDateString()}</td>
+                      <td className="px-4 md:px-6 py-4 font-black text-slate-950 text-sm uppercase italic">
+                        {fb.name} <span className="block text-[9px] text-slate-500 lowercase font-bold tracking-widest mt-1">{fb.email}</span>
+                      </td>
+                      <td className="px-4 md:px-6 py-4 text-xs text-slate-800 font-medium min-w-[200px]">{fb.message}</td>
+                      <td className="px-4 md:px-6 py-4">
+                         {fb.status === 'accepted' ? (
+                            <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">✅ ACCEPTED</span>
+                         ) : (
+                            <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">⏳ PENDING</span>
+                         )}
+                      </td>
+                      <td className="px-4 md:px-6 py-4 text-right">
+                        {fb.status !== 'accepted' && (
+                          <button onClick={() => handleAcceptFeedback(fb._id || fb.id)} className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-emerald-600 hover:bg-emerald-50 px-3 py-2 rounded-full transition-all border border-emerald-200">Accept</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </>
+            )}
+
           </table>
         </div>
       </div>
@@ -180,22 +372,19 @@ export default function AdminDashboard() {
       {/* --- ADD / EDIT PACKAGE MODAL --- */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-2xl rounded-[2.5rem] p-8 md:p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
-              <h2 className="text-2xl md:text-3xl font-black italic uppercase mb-8">{editingItem ? "Edit" : "Add"} <span className="text-blue-600">Trip</span></h2>
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <input type="text" placeholder="Trip Title" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500" value={formData.title || ""} onChange={(e) => setFormData({...formData, title: e.target.value})} />
-                <input type="text" placeholder="Location" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500" value={formData.location || ""} onChange={(e) => setFormData({...formData, location: e.target.value})} />
-                <input type="number" placeholder="Price (INR)" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500" value={formData.price || ""} onChange={(e) => setFormData({...formData, price: e.target.value})} />
-                <input type="number" placeholder="Days (e.g. 1)" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500" value={formData.days || ""} onChange={(e) => setFormData({...formData, days: e.target.value})} />
-                <input type="text" placeholder="Vibe (e.g. Retro, Beach)" className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500 md:col-span-2" value={formData.vibe || ""} onChange={(e) => setFormData({...formData, vibe: e.target.value})} />
-                <input type="text" placeholder="Image URL" className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500 md:col-span-2" value={formData.image_url || ""} onChange={(e) => setFormData({...formData, image_url: e.target.value})} />
-                <textarea placeholder="Itinerary (Comma separated: London Eye, Big Ben)" className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500 md:col-span-2 h-24 resize-none" value={formData.itinerary || ""} onChange={(e) => setFormData({...formData, itinerary: e.target.value})} />
-                <textarea placeholder="Description" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500 md:col-span-2 h-32 resize-none" value={formData.description || ""} onChange={(e) => setFormData({...formData, description: e.target.value})} />
-                <div className="md:col-span-2 flex gap-4 mt-2">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 bg-slate-200 text-slate-700 font-black py-4 rounded-xl hover:bg-slate-300 transition-all uppercase tracking-widest text-xs">Cancel</button>
-                  <button type="submit" className="flex-1 bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-slate-900 transition-all uppercase tracking-widest shadow-xl text-xs">Save Adventure</button>
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-2xl rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
+              <h2 className="text-xl md:text-3xl font-black italic uppercase mb-6 md:mb-8 text-slate-900">Add <span className="text-blue-600">Adventure</span></h2>
+              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                <input type="text" placeholder="Trip Title" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500 text-slate-900 font-bold" value={formData.title || ""} onChange={(e) => setFormData({...formData, title: e.target.value})} />
+                <input type="text" placeholder="Location" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500 text-slate-900 font-bold" value={formData.location || ""} onChange={(e) => setFormData({...formData, location: e.target.value})} />
+                <input type="number" placeholder="Price (INR)" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500 text-slate-900 font-bold" value={formData.price || ""} onChange={(e) => setFormData({...formData, price: e.target.value})} />
+                <input type="number" placeholder="Days" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500 text-slate-900 font-bold" value={formData.days || ""} onChange={(e) => setFormData({...formData, days: e.target.value})} />
+                <textarea placeholder="Description" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500 text-slate-900 font-bold md:col-span-2 h-24" value={formData.description || ""} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+                <div className="md:col-span-2 flex flex-col sm:flex-row gap-3">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="w-full sm:flex-1 bg-slate-200 text-slate-900 font-black py-4 rounded-xl uppercase text-xs">Cancel</button>
+                  <button type="submit" className="w-full sm:flex-1 bg-blue-600 text-white font-black py-4 rounded-xl uppercase text-xs shadow-lg">Save Adventure</button>
                 </div>
               </form>
             </motion.div>
@@ -203,21 +392,18 @@ export default function AdminDashboard() {
         )}
       </AnimatePresence>
 
-      {/* --- ADMIN SETTINGS MODAL (Password Change) --- */}
+      {/* --- ADD SUB ADMIN MODAL --- */}
       <AnimatePresence>
         {isSettingsOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsSettingsOpen(false)} />
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-md rounded-[2.5rem] p-8 md:p-10 shadow-2xl">
-              <h2 className="text-2xl font-black italic uppercase mb-8">Admin <span className="text-blue-600">Settings</span></h2>
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsSettingsOpen(false)} />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-md rounded-[2rem] md:rounded-[2.5rem] p-8 md:p-10 shadow-2xl">
+              <h2 className="text-xl md:text-2xl font-black italic uppercase mb-6 text-slate-900">Add <span className="text-blue-600">Sub-Admin</span></h2>
               <form onSubmit={handleAdminUpdate} className="flex flex-col gap-4">
-                <input type="email" placeholder="New Admin Email (Optional)" className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500" value={adminData.email} onChange={(e) => setAdminData({...adminData, email: e.target.value})} />
-                <input type="password" placeholder="New Password" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500" value={adminData.newPassword} onChange={(e) => setAdminData({...adminData, newPassword: e.target.value})} />
-                <input type="password" placeholder="Confirm Password" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500" value={adminData.confirmPassword} onChange={(e) => setAdminData({...adminData, confirmPassword: e.target.value})} />
-                <div className="flex gap-4 mt-4">
-                  <button type="button" onClick={() => setIsSettingsOpen(false)} className="flex-1 bg-slate-200 text-slate-700 font-black py-4 rounded-xl hover:bg-slate-300 transition-all uppercase tracking-widest text-[10px]">Cancel</button>
-                  <button type="submit" className="flex-1 bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-slate-900 transition-all uppercase tracking-widest shadow-xl text-[10px]">Save Changes</button>
-                </div>
+                <input type="email" placeholder="New Admin Email" required className="bg-slate-100 p-4 rounded-xl outline-none text-slate-900 font-bold" value={adminData.email} onChange={(e) => setAdminData({...adminData, email: e.target.value})} />
+                <input type="password" placeholder="Password" required className="bg-slate-100 p-4 rounded-xl outline-none text-slate-900 font-bold" value={adminData.newPassword} onChange={(e) => setAdminData({...adminData, newPassword: e.target.value})} />
+                <input type="password" placeholder="Confirm Password" required className="bg-slate-100 p-4 rounded-xl outline-none text-slate-900 font-bold" value={adminData.confirmPassword} onChange={(e) => setAdminData({...adminData, confirmPassword: e.target.value})} />
+                <button type="submit" className="w-full bg-blue-600 text-white font-black py-4 rounded-xl uppercase text-xs shadow-lg">Send Request</button>
               </form>
             </motion.div>
           </div>

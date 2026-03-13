@@ -76,8 +76,8 @@ export default function RegisterPage() {
         .animate-ken-burns { animation: kenBurns 30s ease-in-out infinite alternate; }
       `}</style>
 
-      {/* FIXED: pt-40 and pb-20 added to stop overlap with navbar */}
-      <div className={`min-h-screen flex items-center justify-center p-4 pt-40 pb-20 relative overflow-hidden z-0 transition-colors duration-700 ${isDarkMode ? 'bg-slate-950' : 'bg-[#f0f4f8]'}`}>
+      {/* Responsive padding added */}
+      <div className={`min-h-screen flex items-center justify-center p-4 pt-32 md:pt-40 pb-10 md:pb-20 relative overflow-hidden z-0 transition-colors duration-700 ${isDarkMode ? 'bg-slate-950' : 'bg-[#f0f4f8]'}`}>
         
         {/* Background Layer */}
         <div className="absolute inset-0 z-[-1] overflow-hidden">
@@ -88,41 +88,41 @@ export default function RegisterPage() {
           <div className={`absolute inset-0 backdrop-blur-[2px] transition-colors duration-700 ${isDarkMode ? 'bg-black/60' : 'bg-white/20'}`}></div>
         </div>
 
-        {/* Theme Toggle */}
+        {/* Theme Toggle - Mobile optimized position */}
         <button 
           onClick={() => setIsDarkMode(!isDarkMode)}
-          className={`absolute top-6 right-6 z-50 p-3 rounded-2xl backdrop-blur-xl border transition-all duration-300 hover:scale-110 active:scale-90 ${isDarkMode ? 'bg-white/10 border-white/20 text-yellow-400' : 'bg-black/5 border-black/10 text-slate-800'}`}
+          className={`absolute top-4 right-4 md:top-6 md:right-6 z-50 p-2.5 md:p-3 rounded-2xl backdrop-blur-xl border transition-all duration-300 hover:scale-110 active:scale-90 ${isDarkMode ? 'bg-white/10 border-white/20 text-yellow-400' : 'bg-black/5 border-black/10 text-slate-800 shadow-lg'}`}
         >
           {isDarkMode ? "☀️" : "🌙"}
         </button>
         
-        {/* Main Card */}
+        {/* Main Card - Flex direction change for mobile */}
         <div 
-          className={`relative z-10 flex flex-col md:flex-row-reverse w-full max-w-4xl rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] border transition-all duration-1000 ease-out transform ${
+          className={`relative z-10 flex flex-col md:flex-row-reverse w-full max-w-4xl rounded-[2rem] md:rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] border transition-all duration-1000 ease-out transform ${
             isLoaded ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-8"
           } ${isDarkMode ? 'bg-slate-900/40 border-white/10' : 'bg-white/40 border-white/60'}`}
         >
-          {/* Greeting Side (Right) - Text is now explicitly colored */}
-          <div className={`md:w-1/2 w-full h-64 md:h-auto relative group flex flex-col justify-center items-center p-8 text-center border-l transition-all duration-700 ${isDarkMode ? 'border-white/10 bg-black/20' : 'border-white/50 bg-white/40'}`}>
-            <h1 className={`text-3xl md:text-4xl font-extrabold tracking-widest leading-snug transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          {/* Greeting Side (Now on top for mobile, right for desktop) */}
+          <div className={`md:w-1/2 w-full h-48 md:h-auto relative group flex flex-col justify-center items-center p-6 md:p-8 text-center border-b md:border-b-0 md:border-l transition-all duration-700 ${isDarkMode ? 'border-white/10 bg-black/20' : 'border-white/50 bg-white/40'}`}>
+            <h1 className={`text-2xl md:text-4xl font-extrabold tracking-widest leading-snug transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               {theme.greeting}
             </h1>
-            <div className="h-[3px] w-12 bg-blue-500 mx-auto rounded-full mt-4 mb-3 shadow-[0_0_10px_rgba(59,130,246,0.3)]"></div>
-            <p className={`text-sm font-medium tracking-wider transition-colors px-4 ${isDarkMode ? 'text-blue-100/70' : 'text-gray-800'}`}>
+            <div className="h-[3px] w-10 md:w-12 bg-blue-500 mx-auto rounded-full mt-3 md:mt-4 mb-3 shadow-[0_0_10px_rgba(59,130,246,0.3)]"></div>
+            <p className={`text-xs md:text-sm font-medium tracking-wider transition-colors px-4 ${isDarkMode ? 'text-blue-100/70' : 'text-gray-800'}`}>
               {theme.subtitle}
             </p>
           </div>
 
-          {/* Form Side (Left) */}
-          <div className={`md:w-1/2 w-full p-10 md:p-14 backdrop-blur-2xl flex flex-col justify-center relative transition-colors duration-700 ${isDarkMode ? 'bg-slate-900/80 text-white' : 'bg-white/70 text-gray-900'}`}>
+          {/* Form Side (Bottom for mobile, left for desktop) */}
+          <div className={`md:w-1/2 w-full p-8 md:p-14 backdrop-blur-2xl flex flex-col justify-center relative transition-colors duration-700 ${isDarkMode ? 'bg-slate-900/80 text-white' : 'bg-white/70 text-gray-900'}`}>
             
-            <div className="text-center mb-10 relative z-10">
-              <h2 className={`text-2xl font-bold tracking-widest inline-block py-2 mb-2 uppercase border-y transition-colors ${isDarkMode ? 'border-white/20' : 'border-gray-900/10'}`}>
+            <div className="text-center mb-6 md:mb-10 relative z-10">
+              <h2 className={`text-xl md:text-2xl font-bold tracking-widest inline-block py-2 mb-2 uppercase border-y transition-colors ${isDarkMode ? 'border-white/20' : 'border-gray-900/10'}`}>
                 Register
               </h2>
             </div>
 
-            <form onSubmit={handleRegister} className="space-y-8 relative z-10">
+            <form onSubmit={handleRegister} className="space-y-6 md:space-y-8 relative z-10">
               
               {/* Full Name */}
               <div className="relative group">
@@ -132,9 +132,9 @@ export default function RegisterPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder=" "
-                  className={`block w-full px-2 py-3 bg-transparent border-b-2 appearance-none focus:outline-none focus:ring-0 transition-colors font-medium peer ${isDarkMode ? 'border-slate-700 focus:border-blue-400' : 'border-gray-400 focus:border-blue-500'}`}
+                  className={`block w-full px-2 py-3 bg-transparent border-b-2 appearance-none focus:outline-none focus:ring-0 transition-colors font-medium peer ${isDarkMode ? 'border-slate-700 focus:border-blue-400 text-white' : 'border-gray-400 focus:border-blue-500 text-gray-900'}`}
                 />
-                <label className={`absolute font-medium duration-300 transform -translate-y-6 scale-75 top-3 z-[-1] origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6 tracking-wide ${isDarkMode ? 'text-slate-400 peer-focus:text-blue-400' : 'text-gray-600 peer-focus:text-blue-600'}`}>
+                <label className={`absolute font-medium duration-300 transform -translate-y-6 scale-75 top-3 z-[-1] origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6 tracking-wide text-sm md:text-base ${isDarkMode ? 'text-slate-400 peer-focus:text-blue-400' : 'text-gray-600 peer-focus:text-blue-600'}`}>
                   Full Name
                 </label>
               </div>
@@ -147,14 +147,14 @@ export default function RegisterPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder=" "
-                  className={`block w-full px-2 py-3 bg-transparent border-b-2 appearance-none focus:outline-none focus:ring-0 transition-colors font-medium peer ${isDarkMode ? 'border-slate-700 focus:border-blue-400' : 'border-gray-400 focus:border-blue-500'}`}
+                  className={`block w-full px-2 py-3 bg-transparent border-b-2 appearance-none focus:outline-none focus:ring-0 transition-colors font-medium peer ${isDarkMode ? 'border-slate-700 focus:border-blue-400 text-white' : 'border-gray-400 focus:border-blue-500 text-gray-900'}`}
                 />
-                <label className={`absolute font-medium duration-300 transform -translate-y-6 scale-75 top-3 z-[-1] origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6 tracking-wide ${isDarkMode ? 'text-slate-400 peer-focus:text-blue-400' : 'text-gray-600 peer-focus:text-blue-600'}`}>
+                <label className={`absolute font-medium duration-300 transform -translate-y-6 scale-75 top-3 z-[-1] origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6 tracking-wide text-sm md:text-base ${isDarkMode ? 'text-slate-400 peer-focus:text-blue-400' : 'text-gray-600 peer-focus:text-blue-600'}`}>
                   Email Address
                 </label>
               </div>
 
-              {/* Password with Hover Eye Effect */}
+              {/* Password */}
               <div className="relative group">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -162,9 +162,9 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder=" "
-                  className={`block w-full px-2 py-3 bg-transparent border-b-2 appearance-none focus:outline-none focus:ring-0 transition-colors font-medium peer ${isDarkMode ? 'border-slate-700 focus:border-blue-400' : 'border-gray-400 focus:border-blue-500'}`}
+                  className={`block w-full px-2 py-3 bg-transparent border-b-2 appearance-none focus:outline-none focus:ring-0 transition-colors font-medium peer ${isDarkMode ? 'border-slate-700 focus:border-blue-400 text-white' : 'border-gray-400 focus:border-blue-500 text-gray-900'}`}
                 />
-                <label className={`absolute font-medium duration-300 transform -translate-y-6 scale-75 top-3 z-[-1] origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6 tracking-wide ${isDarkMode ? 'text-slate-400 peer-focus:text-blue-400' : 'text-gray-600 peer-focus:text-blue-600'}`}>
+                <label className={`absolute font-medium duration-300 transform -translate-y-6 scale-75 top-3 z-[-1] origin-[0] peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6 tracking-wide text-sm md:text-base ${isDarkMode ? 'text-slate-400 peer-focus:text-blue-400' : 'text-gray-600 peer-focus:text-blue-600'}`}>
                   Password
                 </label>
                 <button 
@@ -177,22 +177,22 @@ export default function RegisterPage() {
               </div>
 
               {error && (
-                <p className="text-red-400 bg-red-500/10 border border-red-500/20 p-3 rounded-lg text-sm text-center font-bold">
+                <p className="text-red-400 bg-red-500/10 border border-red-500/20 p-2 md:p-3 rounded-lg text-xs md:text-sm text-center font-bold">
                   {error}
                 </p>
               )}
 
-              <div className="pt-4">
+              <div className="pt-2 md:pt-4">
                 <button
                   type="submit"
-                  className="w-full relative flex items-center justify-center bg-blue-600 text-white font-bold tracking-widest py-3.5 rounded-xl shadow-lg hover:bg-blue-700 hover:-translate-y-1 transition-all duration-300 active:scale-95 shadow-blue-600/20 hover:shadow-blue-600/40"
+                  className="w-full relative flex items-center justify-center bg-blue-600 text-white font-bold tracking-widest py-3 md:py-3.5 rounded-xl shadow-lg hover:bg-blue-700 hover:-translate-y-1 transition-all duration-300 active:scale-95 shadow-blue-600/20 hover:shadow-blue-600/40 text-xs md:text-sm"
                 >
                   CREATE ACCOUNT
                 </button>
               </div>
               
-              <div className="text-center mt-6">
-                <Link href="/login" className={`font-medium text-sm transition-colors ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-gray-600 hover:text-blue-600'}`}>
+              <div className="text-center mt-4 md:mt-6">
+                <Link href="/login" className={`font-medium text-xs md:text-sm transition-colors ${isDarkMode ? 'text-slate-400 hover:text-white' : 'text-gray-600 hover:text-blue-600'}`}>
                   Already a member? <span className="font-bold underline">Login</span>
                 </Link>
               </div>

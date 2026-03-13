@@ -22,11 +22,90 @@ exports.loginUser = async (req,res)=>{
     return res.json({msg:"Wrong password"});
   }
 
-  res.json({
-  msg:"Login success",
-  role: user.role,
-  name: user.name   // 👈 add this
-});
+  // 🚀 हा नवीन छोटासा बदल: Pending Admin ला आत जाण्यापासून रोखण्यासाठी
+  if(user.role === "pending_admin" || user.role === "pending"){
+    return res.json({msg:"Your Admin request is pending approval!"});
+  }
 
+  res.json({
+    msg:"Login success",
+    role: user.role,
+    name: user.name   
+  });
 };
 
+
+// ॲडमिनचा पासवर्ड आणि ईमेल अपडेट करण्यासाठी
+exports.updateAdmin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // डेटाबेसमधून ॲडमिनला शोधणे
+    const admin = await User.findOne({ where: { role: 'admin' } });
+
+    if (!admin) {
+      return res.status(404).json({ msg: "Admin not found" });
+    }
+
+    // नवीन ईमेल टाकला असेल तर अपडेट कर
+    if (email && email.trim() !== "") {
+      admin.email = email;
+    }
+    
+    // नवीन पासवर्ड अपडेट कर
+    if (password && password.trim() !== "") {
+      admin.password = password;
+    }
+
+    await admin.save(); // डेटाबेसमध्ये सेव्ह करा
+    res.json({ msg: "Admin credentials updated!" });
+
+  } catch (error) {
+    console.error("Error updating admin:", error);
+    res.status(500).json({ msg: "Server Error" });
+  }
+};
+
+//for deleting user
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params; // URL मधून ID घेणे
+
+    const user = await User.findOne({ where: { id: id } });
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+     await user.destroy(); 
+    
+    res.json({ msg: "User deleted successfully 🗑️" });
+
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ msg: "Server Error" });
+  }
+};
+
+// 🚀 नवीन फंक्शन: Pending Sub-Admin ला Approve करण्यासाठी
+exports.approveUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    const user = await User.findOne({ where: { id: id } });
+
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    user.role = role; // युझरचा रोल 'admin' सेट करणे
+    await user.save();
+
+    res.json({ msg: "Sub-Admin Approved Successfully! ✅" });
+
+  } catch (error) {
+    console.error("Error updating user role:", error);
+    res.status(500).json({ msg: "Server Error" });
+  }
+};

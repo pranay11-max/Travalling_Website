@@ -6,11 +6,16 @@ const Lead = sequelize.define("Lead", {
   email: DataTypes.STRING,
   phone: DataTypes.STRING,
   message: DataTypes.TEXT,
-  status: {
+  
+  // 🚀 हे दोन नवीन कॉलम्स आपण ॲड केले आहेत:
+  packageName: {
     type: DataTypes.STRING,
-    defaultValue: "new"
+    allowNull: true // Contact फॉर्ममध्ये हे रिकामं असेल म्हणून true ठेवलंय
   },
-  packageId: DataTypes.INTEGER   // 👈 ADD THIS
+  type: {
+    type: DataTypes.STRING,
+    defaultValue: "contact" // जर काहीच नाही पाठवलं तर तो 'contact' म्हणून सेव्ह होईल
+  }
 });
 
 module.exports = Lead;

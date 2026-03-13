@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const sequelize = require("./config/sql");
 // const packageRoutes = require('./routes/package');
+const feedbackRoutes = require('./routes/feedbackRoutes');
 
 require("./models/Package");
 require("./models/User");
@@ -30,6 +31,7 @@ app.use("/api/packages", require("./routes/package"));
 app.use("/api/users", require("./routes/users"));
 app.use("/api/leads", require("./routes/leads"));
 // app.use('/api', packageRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 
 
