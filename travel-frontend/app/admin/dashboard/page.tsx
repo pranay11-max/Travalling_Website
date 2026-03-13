@@ -77,27 +77,73 @@ export default function AdminDashboard() {
     }
   };
 
+  // 🚀 खरा एरर शोधण्यासाठी अपडेट केलेलं फंक्शन (Debugging Code)
   const handleAdminUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if(adminData.newPassword !== adminData.confirmPassword) {
-        alert("Passwords do not match!");
+        alert("Passwords do not match! ❌");
         return;
     }
-    // इथे बॅकएंड API ला कॉल जाईल (भविष्यात)
-    alert("Admin Credentials Updated! (Backend API needed)");
-    setIsSettingsOpen(false);
+    
+    try {
+      const res = await fetch("https://travel-backend-api-vx7a.onrender.com/api/users/update-admin", {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "role": "admin"
+        },
+        body: JSON.stringify({
+          email: adminData.email,
+          password: adminData.newPassword
+        })
+      });
+
+      // 🚀 सर्व्हरने काय उत्तर दिलंय ते वाचणे
+      const errorData = await res.json().catch(() => ({ msg: "Route not found or Server down" }));
+
+      if (res.ok) {
+        alert("Admin Credentials Updated Successfully! 🚀 \n(पुढच्या वेळी नवीन पासवर्डने लॉगिन कर)");
+        setIsSettingsOpen(false);
+        setAdminData({ email: "", newPassword: "", confirmPassword: "" }); 
+      } else {
+        // 🚀 आता इथे खरा एरर दिसेल!
+        alert("Backend Error: " + (errorData.msg || errorData.error || "Unknown Error"));
+      }
+    } catch (err) {
+      alert("Network Error! ❌ (तुझा Render चा सर्व्हर बंद असू शकतो)");
+    }
   };
 
-  // लोकल सिक्वेन्स बदलण्यासाठी
-  const movePackage = (index: number, direction: 'up' | 'down') => {
+  // 🚀 डायरेक्ट नंबर टाकून सिक्वेन्स बदलण्याची भारी पद्धत
+  const changePackagePosition = async (oldIndex: number, newPosStr: string) => {
+    const newPos = parseInt(newPosStr);
+    
+    // जर नंबर चुकीचा असेल, किंवा तोच नंबर पुन्हा टाकला असेल, तर काहीच करू नको
+    if (isNaN(newPos) || newPos < 1 || newPos > packages.length || newPos - 1 === oldIndex) return;
+
+    const newIndex = newPos - 1; // Array 0 पासून सुरू होतो म्हणून -1
     const newPackages = [...packages];
-    if (direction === 'up' && index > 0) {
-      [newPackages[index - 1], newPackages[index]] = [newPackages[index], newPackages[index - 1]];
-    } else if (direction === 'down' && index < newPackages.length - 1) {
-      [newPackages[index + 1], newPackages[index]] = [newPackages[index], newPackages[index + 1]];
-    }
+    
+    // जुन्या जागेवरून काढा आणि नवीन जागेवर टाका
+    const [movedItem] = newPackages.splice(oldIndex, 1);
+    newPackages.splice(newIndex, 0, movedItem);
+    
+    // स्क्रीनवर लगेच बदल दिसेल
     setPackages(newPackages);
-    // टीप: खरा क्रम बदलण्यासाठी इथे Backend API ला कॉल करावा लागेल
+
+    // बॅकएंडला नवीन क्रम पाठवा
+    try {
+      await fetch("https://travel-backend-api-vx7a.onrender.com/api/packages/sequence/update", {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json", 
+          "role": "admin" 
+        },
+        body: JSON.stringify({ packages: newPackages })
+      });
+    } catch (err) {
+      console.error("Failed to update sequence in database", err);
+    }
   };
 
   return (
@@ -134,7 +180,7 @@ export default function AdminDashboard() {
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-900 text-white uppercase text-[10px] tracking-[0.2em]">
               <tr>
-                <th className="px-6 py-5">Order</th>
+                <th className="px-6 py-5 w-24">Order</th>
                 <th className="px-6 py-5">Trip</th>
                 <th className="px-6 py-5">Vibe</th>
                 <th className="px-6 py-5">Price</th>
@@ -144,9 +190,21 @@ export default function AdminDashboard() {
             <tbody className="divide-y divide-slate-100">
               {packages.map((pkg: any, index: number) => (
                 <tr key={pkg.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-5 flex gap-2">
-                     <button onClick={() => movePackage(index, 'up')} className="p-1 bg-slate-100 hover:bg-slate-200 rounded">↑</button>
-                     <button onClick={() => movePackage(index, 'down')} className="p-1 bg-slate-100 hover:bg-slate-200 rounded">↓</button>
+                  <td className="px-6 py-5">
+                     <input 
+                        type="number" 
+                        min="1" 
+                        max={packages.length}
+                        defaultValue={index + 1}
+                        key={`${pkg.id}-${index}`} 
+                        onBlur={(e) => changePackagePosition(index, e.target.value)}
+                        onKeyDown={(e) => { 
+                          if (e.key === 'Enter') { 
+                            e.currentTarget.blur(); 
+                          } 
+                        }}
+                        className="w-14 p-2 text-center border border-slate-300 rounded-lg text-xs font-black text-slate-700 focus:ring-2 ring-blue-500 outline-none bg-white shadow-sm"
+                     />
                   </td>
                   <td className="px-6 py-5 font-bold text-slate-800">{pkg.title}</td>
                   <td className="px-6 py-5 uppercase text-[10px] font-black text-slate-400 tracking-widest">{pkg.vibe || "General"}</td>

@@ -30,3 +30,35 @@ exports.loginUser = async (req,res)=>{
 
 };
 
+
+
+// ॲडमिनचा पासवर्ड आणि ईमेल अपडेट करण्यासाठी
+exports.updateAdmin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // डेटाबेसमधून ॲडमिनला शोधणे
+    const admin = await User.findOne({ where: { role: 'admin' } });
+
+    if (!admin) {
+      return res.status(404).json({ msg: "Admin not found" });
+    }
+
+    // नवीन ईमेल टाकला असेल तर अपडेट कर
+    if (email && email.trim() !== "") {
+      admin.email = email;
+    }
+    
+    // नवीन पासवर्ड अपडेट कर
+    if (password && password.trim() !== "") {
+      admin.password = password;
+    }
+
+    await admin.save(); // डेटाबेसमध्ये सेव्ह करा
+    res.json({ msg: "Admin credentials updated!" });
+
+  } catch (error) {
+    console.error("Error updating admin:", error);
+    res.status(500).json({ msg: "Server Error" });
+  }
+};
