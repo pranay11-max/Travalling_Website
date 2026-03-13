@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<{ name: string; role?: string } | null>(null);
+
+  // १. नवीन डब्बा शोधण्यासाठी Ref
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -20,6 +23,19 @@ export default function Navbar() {
     }
 
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // २. बाहेर क्लिक केल्यावर डब्बा बंद करण्याचे लॉजिक
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -49,7 +65,8 @@ export default function Navbar() {
         </div>
 
         {/* User Profile Circle */}
-        <div className="relative">
+        {/* ३. इथे ref लावला आहे */}
+        <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className={`flex items-center gap-3 p-1.5 pl-4 rounded-full border transition-all ${

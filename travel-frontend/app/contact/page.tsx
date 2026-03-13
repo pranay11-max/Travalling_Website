@@ -17,7 +17,7 @@ export default function ContactPage() {
     setStatus("Sending..."); // १. इथे लोडिंग सुरू होतं
 
     try {
-      const res = await fetch("http://localhost:4000/api/leads", {
+      const res = await fetch("https://travel-backend-api-vx7a.onrender.com/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)

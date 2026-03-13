@@ -23,7 +23,7 @@ export default function PackageDetailPage() {
   useEffect(() => {
     const fetchPackage = async () => {
       try {
-        const res = await fetch(`http://localhost:4000/api/packages/${id}`);
+        const res = await fetch(`https://travel-backend-api-vx7a.onrender.com/api/packages/${id}`);
         const data = await res.json();
         setPkg(data);
         setLoading(false);
@@ -42,7 +42,7 @@ export default function PackageDetailPage() {
     e.preventDefault();
     setBookingStatus("Sending...");
     try {
-      const res = await fetch("http://localhost:4000/api/leads", {
+      const res = await fetch("https://travel-backend-api-vx7a.onrender.com/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

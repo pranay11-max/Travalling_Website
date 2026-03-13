@@ -6,15 +6,20 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function AdminDashboard() {
   const [packages, setPackages] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   
   const [formData, setFormData] = useState({
     title: "", location: "", price: "", days: "", vibe: "", image_url: "", description: "", itinerary: ""
   });
 
+  const [adminData, setAdminData] = useState({
+    email: "", newPassword: "", confirmPassword: ""
+  });
+
   const fetchPackages = async () => {
     try {
-      const res = await fetch("http://localhost:4000/api/packages");
+      const res = await fetch("https://travel-backend-api-vx7a.onrender.com/api/packages");
       const data = await res.json();
       if (Array.isArray(data)) {
         setPackages(data);
@@ -29,7 +34,7 @@ export default function AdminDashboard() {
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure? This trip will be gone forever!")) return;
     try {
-      const res = await fetch(`http://localhost:4000/api/packages/${id}`, {
+      const res = await fetch(`https://travel-backend-api-vx7a.onrender.com/api/packages/${id}`, {
         method: "DELETE",
         headers: { "role": "admin" }
       });
@@ -46,9 +51,10 @@ export default function AdminDashboard() {
     e.preventDefault();
     try {
       const method = editingItem ? "PUT" : "POST";
+      
       const url = editingItem 
-        ? `http://localhost:4000/api/packages/${editingItem.id}` 
-        : "http://localhost:4000/api/packages";
+        ? `https://travel-backend-api-vx7a.onrender.com/api/packages/${editingItem.id}` 
+        : "https://travel-backend-api-vx7a.onrender.com/api/packages";
 
       const res = await fetch(url, {
         method: method,
@@ -71,6 +77,29 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleAdminUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if(adminData.newPassword !== adminData.confirmPassword) {
+        alert("Passwords do not match!");
+        return;
+    }
+    // इथे बॅकएंड API ला कॉल जाईल (भविष्यात)
+    alert("Admin Credentials Updated! (Backend API needed)");
+    setIsSettingsOpen(false);
+  };
+
+  // लोकल सिक्वेन्स बदलण्यासाठी
+  const movePackage = (index: number, direction: 'up' | 'down') => {
+    const newPackages = [...packages];
+    if (direction === 'up' && index > 0) {
+      [newPackages[index - 1], newPackages[index]] = [newPackages[index], newPackages[index - 1]];
+    } else if (direction === 'down' && index < newPackages.length - 1) {
+      [newPackages[index + 1], newPackages[index]] = [newPackages[index], newPackages[index + 1]];
+    }
+    setPackages(newPackages);
+    // टीप: खरा क्रम बदलण्यासाठी इथे Backend API ला कॉल करावा लागेल
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 font-sans relative">
       <div className="absolute top-0 left-0 w-full h-[110px] bg-slate-900 rounded-b-[2.5rem] shadow-md z-0"></div>
@@ -81,52 +110,55 @@ export default function AdminDashboard() {
             Admin <span className="text-blue-600">Control</span>
           </h1>
           
-          <button 
-            onClick={() => { 
-              setEditingItem(null); 
-              setFormData({ title: "", location: "", price: "", days: "", vibe: "", image_url: "", description: "", itinerary: "" });
-              setIsModalOpen(true); 
-            }}
-            className="bg-slate-900 text-white px-7 py-3.5 rounded-full font-black tracking-widest hover:bg-blue-600 transition-all shadow-xl text-[10px] md:text-xs uppercase"
-          >
-            + ADD NEW ADVENTURE
-          </button>
+          <div className="flex gap-3">
+             <button 
+              onClick={() => setIsSettingsOpen(true)}
+              className="bg-slate-200 text-slate-800 px-5 py-3.5 rounded-full font-black tracking-widest hover:bg-slate-300 transition-all text-[10px] md:text-xs uppercase"
+            >
+              ⚙️ SETTINGS
+            </button>
+            <button 
+              onClick={() => { 
+                setEditingItem(null); 
+                setFormData({ title: "", location: "", price: "", days: "", vibe: "", image_url: "", description: "", itinerary: "" });
+                setIsModalOpen(true); 
+              }}
+              className="bg-slate-900 text-white px-7 py-3.5 rounded-full font-black tracking-widest hover:bg-blue-600 transition-all shadow-xl text-[10px] md:text-xs uppercase"
+            >
+              + ADD NEW ADVENTURE
+            </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-slate-200">
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-900 text-white uppercase text-[10px] tracking-[0.2em]">
               <tr>
+                <th className="px-6 py-5">Order</th>
                 <th className="px-6 py-5">Trip</th>
                 <th className="px-6 py-5">Vibe</th>
-                <th className="px-6 py-5">Duration</th>
                 <th className="px-6 py-5">Price</th>
                 <th className="px-6 py-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {packages.map((pkg: any) => (
+              {packages.map((pkg: any, index: number) => (
                 <tr key={pkg.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-6 py-5 flex gap-2">
+                     <button onClick={() => movePackage(index, 'up')} className="p-1 bg-slate-100 hover:bg-slate-200 rounded">↑</button>
+                     <button onClick={() => movePackage(index, 'down')} className="p-1 bg-slate-100 hover:bg-slate-200 rounded">↓</button>
+                  </td>
                   <td className="px-6 py-5 font-bold text-slate-800">{pkg.title}</td>
                   <td className="px-6 py-5 uppercase text-[10px] font-black text-slate-400 tracking-widest">{pkg.vibe || "General"}</td>
-                  {/* १ असेल तर Day, नसेल तर Days चं लॉजिक इथे लावलंय */}
-                  <td className="px-6 py-5 font-bold text-slate-600">
-                    {pkg.days} {Number(pkg.days) === 1 ? "Day" : "Days"}
-                  </td>
                   <td className="px-6 py-5 font-black text-blue-600 italic">₹{pkg.price}</td>
                   <td className="px-6 py-5 text-right space-x-3">
                     <button 
                       onClick={() => { 
                         setEditingItem(pkg); 
                         setFormData({
-                          title: pkg.title || "",
-                          location: pkg.location || "",
-                          price: pkg.price || "",
-                          days: pkg.days || "",
-                          vibe: pkg.vibe || "",
-                          image_url: pkg.image_url || "",
-                          description: pkg.description || "",
-                          itinerary: pkg.itinerary || ""
+                          title: pkg.title || "", location: pkg.location || "", price: pkg.price || "",
+                          days: pkg.days || "", vibe: pkg.vibe || "", image_url: pkg.image_url || "",
+                          description: pkg.description || "", itinerary: pkg.itinerary || ""
                         });
                         setIsModalOpen(true); 
                       }}
@@ -145,6 +177,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* --- ADD / EDIT PACKAGE MODAL --- */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -163,6 +196,27 @@ export default function AdminDashboard() {
                 <div className="md:col-span-2 flex gap-4 mt-2">
                   <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 bg-slate-200 text-slate-700 font-black py-4 rounded-xl hover:bg-slate-300 transition-all uppercase tracking-widest text-xs">Cancel</button>
                   <button type="submit" className="flex-1 bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-slate-900 transition-all uppercase tracking-widest shadow-xl text-xs">Save Adventure</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- ADMIN SETTINGS MODAL (Password Change) --- */}
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsSettingsOpen(false)} />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white w-full max-w-md rounded-[2.5rem] p-8 md:p-10 shadow-2xl">
+              <h2 className="text-2xl font-black italic uppercase mb-8">Admin <span className="text-blue-600">Settings</span></h2>
+              <form onSubmit={handleAdminUpdate} className="flex flex-col gap-4">
+                <input type="email" placeholder="New Admin Email (Optional)" className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500" value={adminData.email} onChange={(e) => setAdminData({...adminData, email: e.target.value})} />
+                <input type="password" placeholder="New Password" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500" value={adminData.newPassword} onChange={(e) => setAdminData({...adminData, newPassword: e.target.value})} />
+                <input type="password" placeholder="Confirm Password" required className="bg-slate-100 p-4 rounded-xl outline-none focus:ring-2 ring-blue-500" value={adminData.confirmPassword} onChange={(e) => setAdminData({...adminData, confirmPassword: e.target.value})} />
+                <div className="flex gap-4 mt-4">
+                  <button type="button" onClick={() => setIsSettingsOpen(false)} className="flex-1 bg-slate-200 text-slate-700 font-black py-4 rounded-xl hover:bg-slate-300 transition-all uppercase tracking-widest text-[10px]">Cancel</button>
+                  <button type="submit" className="flex-1 bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-slate-900 transition-all uppercase tracking-widest shadow-xl text-[10px]">Save Changes</button>
                 </div>
               </form>
             </motion.div>

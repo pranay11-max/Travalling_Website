@@ -13,6 +13,15 @@ require('dotenv').config();
 const User = require("./models/User");
 
 const app = express();
+// const cors = require('cors');
+
+
+const corsOptions = {
+  origin: 'https://travalling-website.vercel.app', 
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 app.use(cors());
 app.use(express.json());

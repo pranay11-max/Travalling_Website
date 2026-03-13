@@ -12,7 +12,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchPackages = async () => {
       try {
-        const res = await fetch("http://localhost:4000/api/packages");
+        const res = await fetch("https://travel-backend-api-vx7a.onrender.com/api/packages");
         const data = await res.json();
         setPackages(data);
         setLoading(false);
