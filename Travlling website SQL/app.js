@@ -6,7 +6,7 @@ const sequelize = require("./config/sql");
 require("./models/Package");
 require("./models/User");
 require("./models/Lead");
-// require('dotenv').config();
+require('dotenv').config();
 
 
 

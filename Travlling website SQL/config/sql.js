@@ -15,26 +15,27 @@
 
 
 
-// १. आधी Sequelize इंपोर्ट करा (हे विसरू नकोस!)
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') }); 
+
 const { Sequelize } = require("sequelize");
 
-// २. मग डोकं लावून हार्डकोड माहिती टाकूया (Aiven ची)
+console.log("------------------------------------");
+console.log("ENV DB USER:", process.env.DB_USER);
+console.log("------------------------------------");
+
 const sequelize = new Sequelize(
-  "defaultdb", 
-  "avnadmin", 
-  "AVNS_wss1Nhd4UmN4QhLGFWg", 
+  process.env.DB_NAME, 
+  process.env.DB_USER, 
+  process.env.DB_PASS, 
   {
-    host: "mysql-78a2a13-pranaykalekar20-bce1.f.aivencloud.com",
-    port: 13916,
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
     dialect: "mysql",
     dialectOptions: {
-      ssl: {
-        rejectUnauthorized: false // Aiven साठी हे खूप महत्त्वाचं आहे
-      }
-    },
-    timezone: "+05:30"
+      ssl: { rejectUnauthorized: false }
+    }
   }
 );
 
-// ३. शेवटी एक्सपोर्ट करा
 module.exports = sequelize;
