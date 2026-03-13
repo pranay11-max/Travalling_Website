@@ -1,0 +1,56 @@
+const express = require("express");
+const cors = require("cors");
+const sequelize = require("./config/sql");
+// const packageRoutes = require('./routes/package');
+
+require("./models/Package");
+require("./models/User");
+require("./models/Lead");
+
+
+
+
+const User = require("./models/User");
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.use("/api/packages", require("./routes/package"));
+app.use("/api/users", require("./routes/users"));
+app.use("/api/leads", require("./routes/leads"));
+// app.use('/api', packageRoutes);
+
+
+
+sequelize.authenticate()
+  .then(() => console.log("SQL Connected"))
+  .catch(err => console.log(err));
+
+
+sequelize.sync({ alter: true }).then(async () => {
+  
+
+  const admin = await User.findOne({
+    where: { email: "admin@test.com" }
+  });
+
+  if (!admin) {
+    await User.create({
+      name: "Admin",
+      email: "admin@test.com",
+      password: "123",
+      role: "admin"
+    });
+    console.log("✅ Admin created");
+  } else {
+    console.log("ℹ️ Admin already exists");
+  }
+
+console.log(new Date());
+
+
+});
+
+module.exports = app;
